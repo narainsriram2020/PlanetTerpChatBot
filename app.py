@@ -21,7 +21,7 @@ PLANETTERP_BASE_URL = "https://api.planetterp.com/v1"
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "chat" not in st.session_state:
-    model = genai.GenerativeModel('models/gemini-1.5-pro-latest')
+    model = genai.GenerativeModel('gemini-1.5-pro-latest')
     st.session_state.chat = model.start_chat(history=[])
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -101,7 +101,7 @@ def format_data_for_llm(data):
 def generate_response(user_input, data_context):
     """Generate response using Gemini API"""
     try:
-        # Create a system prompt that helps Gemini understand the context
+        # Create system prompt for context
         system_prompt = """
         You are a helpful assistant for University of Maryland students using PlanetTerp data.
         Provide insights about courses and professors based on the data provided.
@@ -127,11 +127,10 @@ def generate_response(user_input, data_context):
         Please provide a helpful response based on this PlanetTerp data.
         """
         
-        # Send to Gemini
-        response = st.session_state.chat.send_message([
-            genai.types.Content(role="system", parts=[genai.types.Part(text=system_prompt)]),
-            genai.types.Content(role="user", parts=[genai.types.Part(text=user_message)])
-        ])
+        # Add system instructions to chat
+        response = st.session_state.chat.send_message(
+            system_prompt + "\n\n" + user_message
+        )
         
         return response.text
     except Exception as e:
