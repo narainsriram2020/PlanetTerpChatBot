@@ -52,13 +52,37 @@ def get_course(course_id):
     st.sidebar.warning(f"Course not found: {course_id}, Status: {response.status_code}")
     return None
 
-@st.cache_data(ttl=3600)
 def get_professor(name):
-    response = requests.get(f"{PLANETTERP_BASE_URL}/professor", params={"name": name})
+    response = requests.get(f"{PLANETTERP_BASE_URL}/professor", 
+                           params={"name": name, "reviews": "true"})
     if response.status_code == 200:
-        return response.json()
+        professor_data = response.json()
+        # Sort reviews by recency
+        return sort_professor_reviews(professor_data)
     return None
 
+# Add this function to sort and filter grades by recency
+def filter_recent_grades(grades, years=4):
+    # Get current year
+    from datetime import datetime
+    current_year = datetime.now().year
+    
+    # Filter grades from the last 'years' years
+    recent_grades = [g for g in grades if g.get('semester') and 
+                    int(g.get('semester', '000000')[:4]) >= (current_year - years)]
+    
+    # Sort by semester in descending order (most recent first)
+    recent_grades.sort(key=lambda x: x.get('semester', '000000'), reverse=True)
+    
+    return recent_grades
+
+def sort_professor_reviews(professor_data):
+    if professor_data and 'reviews' in professor_data and professor_data['reviews']:
+        # Sort reviews by date in descending order
+        professor_data['reviews'].sort(key=lambda x: x.get('created', ''), reverse=True)
+    return professor_data
+
+# Modify the get_course_grades function to filter and sort by recency
 @st.cache_data(ttl=3600)
 def get_course_grades(course_id):
     response = requests.get(f"{PLANETTERP_BASE_URL}/grades", params={"course": course_id})
@@ -66,7 +90,8 @@ def get_course_grades(course_id):
         data = response.json()
         if isinstance(data, dict) and "error" in data:
             return []
-        return data
+        # Filter and sort grades by recency
+        return filter_recent_grades(data)
     return []
 
 # Extract course IDs from query
@@ -130,9 +155,12 @@ def search(query, k=5):
 def generate_response(query, data):
     system = """
     You are a UMD assistant using PlanetTerp data. Be concise but helpful about courses and professors.
-    Focus on grades, ratings, and recommendations. Remember context from previous questions.
+    Focus on the most recent grades, ratings, and recommendations from the past 3-4 years (2021-2025).
+    Explicitly mention the recency of the data (e.g., "According to Spring 2024 data...").
+    Remember context from previous questions.
     If you don't have information about a specific course or professor, simply say so and explain that
     you're limited to the data available from PlanetTerp API.
+    Sound very laid back and chill like your are another student.
     """
     
     context = {
@@ -150,7 +178,7 @@ def generate_response(query, data):
     return response.text
 
 # Basic UI
-st.title("🐢 PlanetTerp Semantic Search")
+st.title("🐢 PlanetTerp Chatbot")
 
 # Display initialization status
 with st.sidebar:
@@ -187,18 +215,19 @@ if query := st.chat_input("Ask about UMD courses..."):
         st.write("Direct matches:", ", ".join(direct_course_ids) if direct_course_ids else "None")
         st.write("Semantic matches:", ", ".join(semantic_course_ids) if semantic_course_ids else "None")
     
+    # In your main chat handler, update the data processing section
     data = {"courses": [], "professors": [], "grades": []}
-    
+
     # Get course details
     for course_id in all_course_ids[:3]:  # Limit to top 3 results
         course = get_course(course_id)
         if course:
             data["courses"].append(course)
             
-            # Get grades for this course
+            # Get grades for this course - now filtered and sorted by recency
             grades = get_course_grades(course_id)
             if grades:
-                data["grades"].extend(grades[:5])  # Limit to 5 grade entries
+                data["grades"].extend(grades[:5])  # Limit to 5 most recent grade entries
             
             # Get professors for this course
             for prof_name in course.get("professors", [])[:3]:  # Limit to 3 professors
