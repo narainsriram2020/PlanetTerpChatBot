@@ -136,7 +136,6 @@ def initialize_index():
         
         st.session_state.index = index
         st.session_state.course_ids = ids
-        st.sidebar.success(f"Index created with {len(ids)} courses")
 
 def search(query, k=5):
     if st.session_state.index is None:
@@ -158,19 +157,42 @@ def search(query, k=5):
     
     return results
 
+def get_rating_emoji(rating):
+    """Convert numerical rating to emoji for visual representation"""
+    if not rating or rating < 0:
+        return " ❓"  # Unknown rating
+    elif rating >= 4.5:
+        return " 🌟"  # Excellent
+    elif rating >= 4.0:
+        return " ⭐"  # Very Good
+    elif rating >= 3.0:
+        return " ✅"  # Good/Average
+    elif rating >= 2.0:
+        return " ⚠️"  # Below Average
+    else:
+        return " ❗"  # Poor
+
 # Generate response
 def generate_response(query, data):
     system = """
     You are a UMD assistant using PlanetTerp data. Be concise but helpful about courses and professors.
     Focus on the most recent grades, ratings, and recommendations from the past 3-4 years (2021-2025).
     Explicitly mention the recency of the data (e.g., "According to Spring 2024 data...").
-    Remember context from previous questions. Keep in mind what class or professors you have already suggested and use that as context. 
+    Remember context from previous questions. Keep in mind what class or professors you have already suggested during the converation and use that as context. 
     Do not bring up random data out of nowhere continue conversation on whatever data is being currently discussed. 
     If you don't have information about a specific course or professor, simply say so and explain that
-    they should visit the PlanetTerp website to get more info, but this should be the last resort option after everything else.
+    they should visit the PlanetTerp website to get more info, but this should be the last resort option.
     Sound very laid back and chill like your are another student.
     When a student asks about what professor they should take for a certain course give them your personal evaluation of the best professor.
+    When mentioning professors, always include their rating emoji beside their name using this format:
+    Professor Name [emoji] - where emoji indicates their average rating.
     """
+    
+    for prof in data["professors"]:
+        if "average_rating" in prof:
+            prof["rating_emoji"] = get_rating_emoji(prof["average_rating"])
+        else:
+            prof["rating_emoji"] = "❓"
     
     context = {
         "courses": data["courses"],
@@ -249,8 +271,27 @@ def load_chat(chat_id):
         
         st.session_state.chat = genai.GenerativeModel('gemini-2.0-flash').start_chat(history=chat_history)
 
+# Add this to your session state initialization
+if "first_visit" not in st.session_state:
+    st.session_state.first_visit = True
+
+# Add this function to determine time of day greeting
+def get_greeting():
+    hour = datetime.datetime.now().hour
+    if hour > 5 and hour < 11:
+        return "Good morning"
+    elif hour > 12 and hour < 15:
+        return "Good afternoon"
+    else:
+        return "Good evening"
+
+
 # Basic UI
 st.title("🐢 PlanetTerp Chatbot")
+if st.session_state.first_visit:
+    greeting = get_greeting()
+    st.success(f"{greeting}! Welcome to PlanetTerp Chatbot. Ask me anything about UMD courses and professors.")
+    st.session_state.first_visit = False
 
 # Main chat area
 for msg in st.session_state.messages:
@@ -259,57 +300,58 @@ for msg in st.session_state.messages:
 
 # Chat input
 if query := st.chat_input("Ask about UMD courses..."):
-    st.session_state.messages.append({"role": "user", "content": query})
-    with st.chat_message("user"):
-        st.write(query)
-    
-    # First try to directly extract course IDs from the query
-    direct_course_ids = extract_course_ids(query)
-    
-    # If no direct matches, use semantic search
-    semantic_course_ids = [] if direct_course_ids else search(query)
-    
-    # Combine results, prioritizing direct matches
-    all_course_ids = direct_course_ids + semantic_course_ids
-    
-    # Process the data
-    data = {"courses": [], "professors": [], "grades": []}
+    with st.spinner("🐢 Thinking..."):
+        st.session_state.messages.append({"role": "user", "content": query})
+        with st.chat_message("user"):
+            st.write(query)
+        
+        # First try to directly extract course IDs from the query
+        direct_course_ids = extract_course_ids(query)
+        
+        # If no direct matches, use semantic search
+        semantic_course_ids = [] if direct_course_ids else search(query)
+        
+        # Combine results, prioritizing direct matches
+        all_course_ids = direct_course_ids + semantic_course_ids
+        
+        # Process the data
+        data = {"courses": [], "professors": [], "grades": []}
 
-    # Get course details
-    for course_id in all_course_ids[:3]:  # Limit to top 3 results
-        course = get_course(course_id)
-        if course:
-            data["courses"].append(course)
-            
-            # Get grades for this course - now filtered and sorted by recency
-            grades = get_course_grades(course_id)
-            if grades:
-                data["grades"].extend(grades[:5])  # Limit to 5 most recent grade entries
-            
-            # Get professors for this course
-            for prof_name in course.get("professors", [])[:3]:  # Limit to 3 professors
-                prof = get_professor(prof_name)
-                if prof:
-                    data["professors"].append(prof)
-    
-    # Update context
-    st.session_state.context = data
-    
-    # Generate response
-    response = generate_response(query, data)
-    
-    # Display response
-    st.session_state.messages.append({"role": "assistant", "content": response})
-    with st.chat_message("assistant"):
-        st.write(response)
-    
-    # If this is the first message in a new chat, generate a name
-    if st.session_state.current_chat_name == "New Chat":
-        st.session_state.current_chat_name = generate_chat_name(query)
-        # Save the chat with the new name
-        save_current_chat()
-        # Force a rerun to update the sidebar
-        st.experimental_rerun()
+        # Get course details
+        for course_id in all_course_ids[:3]:  # Limit to top 3 results
+            course = get_course(course_id)
+            if course:
+                data["courses"].append(course)
+                
+                # Get grades for this course - now filtered and sorted by recency
+                grades = get_course_grades(course_id)
+                if grades:
+                    data["grades"].extend(grades[:5])  # Limit to 5 most recent grade entries
+                
+                # Get professors for this course
+                for prof_name in course.get("professors", [])[:5]:  # Limit to 3 professors
+                    prof = get_professor(prof_name)
+                    if prof:
+                        data["professors"].append(prof)
+        
+        # Update context
+        st.session_state.context = data
+        
+        # Generate response
+        response = generate_response(query, data)
+        
+        # Display response
+        st.session_state.messages.append({"role": "assistant", "content": response})
+        with st.chat_message("assistant"):
+            st.write(response)
+        
+        # If this is the first message in a new chat, generate a name
+        if st.session_state.current_chat_name == "New Chat":
+            st.session_state.current_chat_name = generate_chat_name(query)
+            # Save the chat with the new name
+            save_current_chat()
+            # Force a rerun to update the sidebar
+            st.experimental_rerun()
 
 # Sidebar for chat history
 with st.sidebar:
