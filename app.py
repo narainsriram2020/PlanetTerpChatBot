@@ -5,35 +5,6 @@ import datetime
 import json
 import random
 
-# Basic setup
-# Configure page layout with sidebar options
-st.set_page_config(
-    page_title="PlanetTerp Chatbot", 
-    page_icon="🐢",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
-
-# Apply custom CSS for fixed sidebar elements
-st.markdown("""
-<style>
-    [data-testid="stSidebar"] > div:first-child {
-        height: 100vh;
-        overflow: auto;
-        padding-bottom: 180px;  /* Make space for the footer */
-    }
-    #umd-fact-container {
-        position: fixed;
-        bottom: 0;
-        width: 18%;  /* Match sidebar width - may need adjustment */
-        background-color: white;
-        padding: 10px;
-        border-top: 1px solid #ddd;
-        z-index: 1000;
-    }
-</style>
-""", unsafe_allow_html=True)
-
 # Import all functions from planetterp_core
 from planetterp_core import (
     load_model, get_courses, get_course, get_professor, get_course_grades,
@@ -41,6 +12,34 @@ from planetterp_core import (
     generate_chat_name, get_greeting
 )
 
+# Define the get_random_umd_fact function here, at the top level
+def get_random_umd_fact():
+    umd_facts = [
+        "UMD's mascot Testudo is a diamondback terrapin, Maryland's state reptile.",
+        "McKeldin Mall is one of the largest academic malls in the country.",
+        "UMD has the oldest continuously operating airport in the world - College Park Airport.",
+        "Jim Henson, creator of the Muppets, was a UMD alum who designed the first Kermit while a student.",
+        "The Maryland Stadium has a capacity of over 50,000 fans.",
+        "UMD's school colors (red, white, black, and gold) come from the Maryland state flag.",
+        "The ODK fountain on McKeldin Mall has 200 water jets.",
+        "UMD's campus spans over 1,300 acres.",
+        "The 'M Circle' flowerbed is 57 feet in diameter.",
+        "Basketball legend Len Bias played for the Terps from 1982-1986.",
+        "Point Branch runs through an underground tunnel beneath campus.",
+        "UMD is one of only 62 members of the Association of American Universities.",
+        "The Xfinity Center can hold over 17,000 fans for basketball games.",
+        "UMD's campus has over 8,000 trees of 400+ species.",
+        "Morrill Hall is UMD's oldest academic building, completed in 1898.",
+        "The Clarice Smith Performing Arts Center covers 318,000 square feet.",
+        "UMD's libraries hold over 4 million volumes.",
+        "The fear of turtles is called chelonaphobia.",
+        "Testudo statues around campus are considered good luck, especially during finals week.",
+        "The Terrapin Trail bridge spans 600 feet over Paint Branch.",
+    ]
+    return random.choice(umd_facts)
+
+# Basic setup
+st.set_page_config(page_title="PlanetTerp Chatbot", page_icon="🐢")
 
 # Initialize the model and state
 @st.cache_resource
@@ -67,30 +66,8 @@ if "current_chat_name" not in st.session_state:
     st.session_state.current_chat_name = "New Chat"
 if "first_visit" not in st.session_state:
     st.session_state.first_visit = True
-if "umd_fact" not in st.session_state:
-    st.session_state.umd_fact = None
-
-# UMD Fun Facts
-UMD_FACTS = [
-    "UMD was founded in 1856 and is the flagship institution of the University System of Maryland.",
-    "You can see the Washington Monument from the top of SECU Stadium",
-    "Testudo, UMD's mascot, is a diamondback terrapin. Students rub its nose for good luck before exams!",
-    "McKeldin Mall is considered the longest collegiate mall in the country!",
-    "UMD has over 40,000 students from all 50 states and 118 countries.",
-    "The University of Maryland's colors are red, white, black, and gold.",
-    "People leave offerings to the Testudo statue in front of McKeldin Library. One time, things got out of hand and Testudo caught on fire.",
-    "UMD has won national championships in men's basketball, women's basketball, men's lacrosse, women's lacrosse, field hockey, and football."
-]
-
-# Get a random UMD fact
-def get_random_umd_fact():
-    if "umd_fact" not in st.session_state or st.session_state.umd_fact is None:
-        st.session_state.umd_fact = random.choice(UMD_FACTS)
-    return st.session_state.umd_fact
-
-# Add to session state initialization
-if "umd_fact" not in st.session_state:
-    st.session_state.umd_fact = None
+if "current_fact" not in st.session_state:
+    st.session_state.current_fact = get_random_umd_fact()
 
 # Cache the courses data
 @st.cache_data(ttl=3600)
@@ -146,7 +123,9 @@ def start_new_chat():
     st.session_state.messages = []
     st.session_state.chat = genai.GenerativeModel('gemini-2.0-flash').start_chat(history=[])
     st.session_state.context = {"courses": [], "professors": [], "grades": []}
-    st.session_state.umd_fact = random.choice(UMD_FACTS)
+    
+    # Update the fun fact only when a new chat is created
+    st.session_state.current_fact = get_random_umd_fact()
 
 # Function to load a saved chat
 def load_chat(chat_id):
@@ -177,8 +156,7 @@ if st.session_state.first_visit:
 
 # Main chat area
 for msg in st.session_state.messages:
-    avatar = "🧑‍🎓" if msg["role"] == "user" else "🤖"  # Change to any emoji or custom avatars
-    with st.chat_message(msg["role"], avatar=avatar):
+    with st.chat_message(msg["role"]):
         st.write(msg["content"])
 
 # Chat input
@@ -244,45 +222,20 @@ if query := st.chat_input("Ask about UMD courses..."):
             # Force a rerun to update the sidebar
             st.experimental_rerun()
 
-# Sidebar layout using custom CSS to ensure fixed positioning
-st.markdown("""
-<style>
-    .sidebar-content {
-        position: fixed;
-        top: 0;
-        bottom: 0;
-        width: inherit;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-    }
-    .sidebar-header {
-        flex: 0 0 auto;
-        padding-bottom: 1rem;
-    }
-    .sidebar-scroll {
-        flex: 1 1 auto;
-        overflow-y: auto;
-        padding-right: 1rem;
-        margin-right: -1rem;
-    }
-    .sidebar-footer {
-        flex: 0 0 auto;
-        padding-top: 1rem;
-    }
-</style>
-""", unsafe_allow_html=True)
-
 # Sidebar for chat history
 with st.sidebar:
-    # Title section
-    st.title("Chats")
+    # Add fun fact section with minimalist design
+    st.markdown("### Fun Fact")
+    with st.container(border=False):
+        st.markdown(f"*{st.session_state.current_fact}*")
     
-    # Small fun fact at the top
-    st.markdown(f"<small><i> Fun Fact: {get_random_umd_fact()}</i></small>", unsafe_allow_html=True)
+    st.divider()
     
-    # New Chat button with icon
-    if st.button("🔄 New Chat", key="new_chat_button", use_container_width=True):
+    st.markdown("### Chats")
+    
+    # New Chat button with minimalist styling
+    if st.button("+ New Chat", key="new_chat_button", use_container_width=True):
+        # Update the fun fact when new chat is created
         start_new_chat()
         st.experimental_rerun()
     
@@ -290,8 +243,6 @@ with st.sidebar:
     
     # Display saved chats
     if st.session_state.saved_chats:
-        st.subheader("Chat History")
-        
         # Sort chats by timestamp (most recent first)
         sorted_chats = sorted(
             st.session_state.saved_chats.items(),
@@ -299,7 +250,7 @@ with st.sidebar:
             reverse=True
         )
         
-        # Display each chat as a button
+        # Display each chat as a button with minimalist design
         for chat_id, chat_data in sorted_chats:
             # Highlight the current chat
             button_style = "primary" if chat_id == st.session_state.current_chat_id else "secondary"
