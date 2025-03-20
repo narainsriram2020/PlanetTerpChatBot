@@ -9,11 +9,25 @@ import faiss
 import google.generativeai as genai
 from dotenv import load_dotenv
 
+
+import asyncio
+
 # Basic setup
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 genai.configure(api_key=GEMINI_API_KEY)
 PLANETTERP_BASE_URL = "https://api.planetterp.com/v1"
+
+
+
+# Example workaround for async initialization
+def torch_initialization():
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    return loop
 
 # Core API functions
 def get_courses():
@@ -75,7 +89,17 @@ def extract_course_ids(query):
 
 # Model and semantic search functions
 def load_model():
+
     return SentenceTransformer('all-MiniLM-L6-v2')
+
+    try:
+        import torch
+        torch.set_num_threads(1)  # Reduce thread usage
+        return SentenceTransformer('all-MiniLM-L6-v2')
+    except Exception as e:
+        print(f"Error loading model: {e}")
+        return None
+
 
 def initialize_index(model, courses):
     if not courses:
@@ -134,6 +158,7 @@ def get_rating_emoji(rating):
 
 # Generate response
 def generate_response(query, data, chat_model):
+
     system = """
     You are a UMD assistant using PlanetTerp data. Be concise but helpful about courses and professors.
     Focus on the most recent grades, ratings, and recommendations from the past 3-4 years (2021-2025).
@@ -167,6 +192,59 @@ def generate_response(query, data, chat_model):
     
     response = chat_model.send_message(system + prompt)
     return response.text
+
+    try:
+        system = """
+        You are a UMD assistant using PlanetTerp data. Be concise but helpful about courses and professors.
+        Focus on the most recent grades, ratings, and recommendations from the past 3-4 years (2021-2025).
+        Explicitly mention the recency of the data (e.g., "According to Spring 2024 data...").
+        Remember context from previous questions. Keep in mind what class or professors you have already suggested during the converation and use that as context. 
+        Do not bring up random data out of nowhere continue conversation on whatever data is being currently discussed. 
+        If you don't have information about a specific course or professor, simply say so and explain that
+        they should visit the PlanetTerp website to get more info, but this should be the last resort option.
+        Sound very laid back and chill like your are another student.
+        When a student asks about what professor they should take for a certain course give them your personal evaluation of the best professor.
+        When mentioning professors, always include their rating emoji beside their name using this format:
+        Professor Name [emoji] - where emoji indicates their average rating.
+        """
+        
+        for prof in data["professors"]:
+            if "average_rating" in prof:
+                prof["rating_emoji"] = get_rating_emoji(prof["average_rating"])
+            else:
+                prof["rating_emoji"] = "❓"
+        
+        context = {
+            "courses": data["courses"],
+            "professors": data["professors"],
+            "grades": data["grades"]
+        }
+        
+        prompt = f"""
+        PlanetTerp Data: {json.dumps(context, indent=2)}
+        Question: {query}
+        """
+        
+        # Add timeout and retry logic
+        response = chat_model.send_message(
+            system + prompt,
+            generation_config={
+                "temperature": 0.7,
+                "top_p": 0.8,
+                "top_k": 40,
+                "max_output_tokens": 1024,
+            },
+            safety_settings=[
+                {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
+                {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
+                {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
+                {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
+            ]
+        )
+        return response.text
+    except Exception as e:
+        return f"I apologize, but I encountered an error: {str(e)}. Please try asking your question again."
+
 
 def generate_chat_name(query):
     # If there are course IDs in the query, use them in the name

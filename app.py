@@ -44,7 +44,13 @@ st.set_page_config(page_title="PlanetTerp Chatbot", page_icon="🐢")
 # Initialize the model and state
 @st.cache_resource
 def get_model():
-    return load_model()
+    try:
+        import os
+        os.environ['TOKENIZERS_PARALLELISM'] = 'false'  # Disable parallelism warnings
+        return load_model()
+    except Exception as e:
+        st.error(f"Error loading model: {str(e)}")
+        return None
 
 model = get_model()
 
@@ -52,7 +58,18 @@ model = get_model()
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "chat" not in st.session_state:
-    st.session_state.chat = genai.GenerativeModel('gemini-2.0-flash').start_chat(history=[])
+    try:
+        st.session_state.chat = genai.GenerativeModel(
+            'gemini-pro',  # Changed from gemini-2.0-flash to gemini-pro
+            generation_config={
+                "temperature": 0.7,
+                "top_p": 0.8,
+                "top_k": 40,
+                "max_output_tokens": 1024,
+            },
+        ).start_chat(history=[])
+    except Exception as e:
+        st.error(f"Error initializing chat: {str(e)}")
 if "context" not in st.session_state:
     st.session_state.context = {"courses": [], "professors": [], "grades": []}
 if "index" not in st.session_state:
@@ -121,7 +138,15 @@ def start_new_chat():
     st.session_state.current_chat_id = str(uuid.uuid4())
     st.session_state.current_chat_name = "New Chat"
     st.session_state.messages = []
-    st.session_state.chat = genai.GenerativeModel('gemini-2.0-flash').start_chat(history=[])
+    st.session_state.chat = genai.GenerativeModel(
+        'gemini-pro',  # Changed from gemini-2.0-flash to gemini-pro
+        generation_config={
+            "temperature": 0.7,
+            "top_p": 0.8,
+            "top_k": 40,
+            "max_output_tokens": 1024,
+        },
+    ).start_chat(history=[])
     st.session_state.context = {"courses": [], "professors": [], "grades": []}
     
     # Update the fun fact only when a new chat is created
@@ -145,10 +170,18 @@ def load_chat(chat_id):
             role = "user" if msg["role"] == "user" else "model"
             chat_history.append({"role": role, "parts": [msg["content"]]})
         
-        st.session_state.chat = genai.GenerativeModel('gemini-2.0-flash').start_chat(history=chat_history)
+        st.session_state.chat = genai.GenerativeModel(
+            'gemini-pro',  # Changed from gemini-2.0-flash to gemini-pro
+            generation_config={
+                "temperature": 0.7,
+                "top_p": 0.8,
+                "top_k": 40,
+                "max_output_tokens": 1024,
+            },
+        ).start_chat(history=chat_history)
 
 # Basic UI
-st.title("🐢 PlanetTerp Chatbot")
+st.title("�� PlanetTerp Chatbot")
 if st.session_state.first_visit:
     greeting = get_greeting()
     st.success(f"{greeting}! Welcome to PlanetTerp Chatbot. Ask me anything about UMD courses and professors.")
