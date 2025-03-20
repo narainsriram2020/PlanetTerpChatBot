@@ -8,12 +8,20 @@ from sentence_transformers import SentenceTransformer
 import faiss
 import google.generativeai as genai
 from dotenv import load_dotenv
+import asyncio
 
 # Basic setup
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 genai.configure(api_key=GEMINI_API_KEY)
 PLANETTERP_BASE_URL = "https://api.planetterp.com/v1"
+
+# Example workaround for async initialization
+def torch_initialization():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    # Your async-dependent initialization logic here
+
 
 # Core API functions
 def get_courses():
