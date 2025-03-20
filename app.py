@@ -181,7 +181,7 @@ def load_chat(chat_id):
         ).start_chat(history=chat_history)
 
 # Basic UI
-st.title("�� PlanetTerp Chatbot")
+st.title("PlanetTerp Chatbot")
 if st.session_state.first_visit:
     greeting = get_greeting()
     st.success(f"{greeting}! Welcome to PlanetTerp Chatbot. Ask me anything about UMD courses and professors.")
