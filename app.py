@@ -75,7 +75,7 @@ UMD_FACTS = [
     "UMD was founded in 1856 and is the flagship institution of the University System of Maryland.",
     "You can see the Washington Monument from the top of SECU Stadium",
     "Testudo, UMD's mascot, is a diamondback terrapin. Students rub its nose for good luck before exams!",
-    
+    "McKeldin Mall is considered the longest collegiate mall in the country!",
     "UMD has over 40,000 students from all 50 states and 118 countries.",
     "The University of Maryland's colors are red, white, black, and gold.",
     "People leave offerings to the Testudo statue in front of McKeldin Library. One time, things got out of hand and Testudo caught on fire.",
