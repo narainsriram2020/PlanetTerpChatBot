@@ -60,7 +60,7 @@ if "messages" not in st.session_state:
 if "chat" not in st.session_state:
     try:
         st.session_state.chat = genai.GenerativeModel(
-            'gemini-pro',  # Changed from gemini-2.0-flash to gemini-pro
+            'gemini-2.0-flash',
             generation_config={
                 "temperature": 0.7,
                 "top_p": 0.8,
@@ -139,7 +139,7 @@ def start_new_chat():
     st.session_state.current_chat_name = "New Chat"
     st.session_state.messages = []
     st.session_state.chat = genai.GenerativeModel(
-        'gemini-pro',  # Changed from gemini-2.0-flash to gemini-pro
+        'gemini-2.0-flash',
         generation_config={
             "temperature": 0.7,
             "top_p": 0.8,
@@ -171,7 +171,7 @@ def load_chat(chat_id):
             chat_history.append({"role": role, "parts": [msg["content"]]})
         
         st.session_state.chat = genai.GenerativeModel(
-            'gemini-pro',  # Changed from gemini-2.0-flash to gemini-pro
+            'gemini-2.0-flash',
             generation_config={
                 "temperature": 0.7,
                 "top_p": 0.8,
@@ -181,10 +181,10 @@ def load_chat(chat_id):
         ).start_chat(history=chat_history)
 
 # Basic UI
-st.title("PlanetTerp Chatbot")
+st.title("🐢 PlanetTerp Chatbot")
 if st.session_state.first_visit:
     greeting = get_greeting()
-    st.success(f"{greeting}! Welcome to PlanetTerp Chatbot. Ask me anything about UMD courses and professors.")
+    st.markdown(f"*{greeting}!* Welcome to PlanetTerp Chatbot. Ask me anything about UMD courses and professors.")
     st.session_state.first_visit = False
 
 # Main chat area
@@ -255,47 +255,39 @@ if query := st.chat_input("Ask about UMD courses..."):
             # Force a rerun to update the sidebar
             st.experimental_rerun()
 
-# Sidebar for chat history
 with st.sidebar:
-    # Add fun fact section with minimalist design
+    # Fun Fact Section
     st.markdown("### Fun Fact")
     with st.container(border=False):
         st.markdown(f"*{st.session_state.current_fact}*")
-    
+
     st.divider()
-    
+
+    # Chat history section
     st.markdown("### Chats")
-    
-    # New Chat button with minimalist styling
     if st.button("+ New Chat", key="new_chat_button", use_container_width=True):
-        # Update the fun fact when new chat is created
         start_new_chat()
         st.experimental_rerun()
-    
+
     st.divider()
-    
-    # Display saved chats
+
     if st.session_state.saved_chats:
-        # Sort chats by timestamp (most recent first)
         sorted_chats = sorted(
             st.session_state.saved_chats.items(),
             key=lambda x: x[1]["timestamp"],
             reverse=True
         )
-        
-        # Display each chat as a button with minimalist design
+
         for chat_id, chat_data in sorted_chats:
-            # Highlight the current chat
             button_style = "primary" if chat_id == st.session_state.current_chat_id else "secondary"
-            
-            # Create a unique key for each button
             button_key = f"chat_{chat_id}"
             
-            if st.button(
-                chat_data["name"], 
-                key=button_key,
-                type=button_style,
-                use_container_width=True
-            ):
-                load_chat(chat_id)
-                st.experimental_rerun()
+            # Create a container for each chat entry
+            with st.container():
+                # Display chat name as a button
+                if st.button(chat_data["name"], key=button_key, type=button_style, use_container_width=True):
+                    load_chat(chat_id)
+                    st.experimental_rerun()
+                
+                # Display timestamp below the chat name button
+                st.caption(f"📆 {chat_data['timestamp']}")
