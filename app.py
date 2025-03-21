@@ -16,25 +16,18 @@ from planetterp_core import (
 def get_random_umd_fact():
     umd_facts = [
         "UMD's mascot Testudo is a diamondback terrapin, Maryland's state reptile.",
-        "McKeldin Mall is one of the largest academic malls in the country.",
+        "McKeldin Mall is the largest academic mall in the country.",
         "UMD has the oldest continuously operating airport in the world - College Park Airport.",
-        "Jim Henson, creator of the Muppets, was a UMD alum who designed the first Kermit while a student.",
-        "The Maryland Stadium has a capacity of over 50,000 fans.",
         "UMD's school colors (red, white, black, and gold) come from the Maryland state flag.",
-        "The ODK fountain on McKeldin Mall has 200 water jets.",
         "UMD's campus spans over 1,300 acres.",
         "The 'M Circle' flowerbed is 57 feet in diameter.",
-        "Basketball legend Len Bias played for the Terps from 1982-1986.",
-        "Point Branch runs through an underground tunnel beneath campus.",
         "UMD is one of only 62 members of the Association of American Universities.",
         "The Xfinity Center can hold over 17,000 fans for basketball games.",
         "UMD's campus has over 8,000 trees of 400+ species.",
         "Morrill Hall is UMD's oldest academic building, completed in 1898.",
         "The Clarice Smith Performing Arts Center covers 318,000 square feet.",
-        "UMD's libraries hold over 4 million volumes.",
         "The fear of turtles is called chelonaphobia.",
         "Testudo statues around campus are considered good luck, especially during finals week.",
-        "The Terrapin Trail bridge spans 600 feet over Paint Branch.",
     ]
     return random.choice(umd_facts)
 
@@ -253,7 +246,7 @@ if query := st.chat_input("Ask about UMD courses..."):
             # Save the chat with the new name
             save_current_chat()
             # Force a rerun to update the sidebar
-            st.experimental_rerun()
+            st.rerun()
 
 with st.sidebar:
     # Fun Fact Section
@@ -262,32 +255,54 @@ with st.sidebar:
         st.markdown(f"*{st.session_state.current_fact}*")
 
     st.divider()
-
-    # Chat history section
-    st.markdown("### Chats")
+    
+    # New Chat Button Section
+    st.markdown("### Chat")
     if st.button("+ New Chat", key="new_chat_button", use_container_width=True):
         start_new_chat()
-        st.experimental_rerun()
-
+        st.rerun()
+    
     st.divider()
 
-    if st.session_state.saved_chats:
-        sorted_chats = sorted(
-            st.session_state.saved_chats.items(),
-            key=lambda x: x[1]["timestamp"],
-            reverse=True
-        )
-
-        for chat_id, chat_data in sorted_chats:
-            button_style = "primary" if chat_id == st.session_state.current_chat_id else "secondary"
-            button_key = f"chat_{chat_id}"
-            
-            # Create a container for each chat entry
-            with st.container():
-                # Display chat name as a button
-                if st.button(chat_data["name"], key=button_key, type=button_style, use_container_width=True):
-                    load_chat(chat_id)
-                    st.experimental_rerun()
-                
-                # Display timestamp below the chat name button
-                st.caption(f"📆 {chat_data['timestamp']}")
+    # How to Use Section
+    st.markdown("### How to Use This Chatbot")
+    st.markdown("""
+    **🔍 Ask about courses:**
+    - Search by course ID (e.g., "Tell me about CMSC131")
+    - Get professor ratings for specific courses
+    - Find prerequisites and course descriptions
+    
+    **👨‍🏫 Learn about professors:**
+    - Ask about teaching styles and ratings
+    - Compare professors for the same course
+    - Find what courses a professor teaches
+    
+    **💡 Tips:**
+    - Be specific with course IDs for best results
+    - Try asking for recommendations based on interests
+    - Use natural language for your questions
+    """)
+    
+    st.divider()
+    
+    # Quick Links for Students
+    st.markdown("### Quick UMD Links")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("[📝 ELMS](https://elms.umd.edu)")
+        st.markdown("[📅 Testudo](https://testudo.umd.edu)")
+    with col2:
+        st.markdown("[📚 Classes (SOC)](https://app.testudo.umd.edu/soc/)")
+        st.markdown("[🍽️ Dining](https://dining.umd.edu)")
+    
+    st.divider()
+    
+    # Academic Calendar Highlights
+    st.markdown("### Important Dates")
+    st.markdown("🏝️ **Spring Break**: March 16-23")
+    st.markdown("🗓️ **Registration**: April 1-15, 2025")
+    st.markdown("📚 **Finals Exams**: May 15-21, 2025")
+    st.markdown("🎓 **Commencement**: May 21, 2025")
+    
+    # Version Info
+    st.caption("v1.0.0 | Updated March 2025")
