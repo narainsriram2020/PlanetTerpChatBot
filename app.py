@@ -113,10 +113,7 @@ def save_current_chat():
 
 # Function to start a new chat
 def start_new_chat():
-    # Save the current chat first
     save_current_chat()
-    
-    # Create a new chat
     st.session_state.current_chat_id = str(uuid.uuid4())
     st.session_state.current_chat_name = "New Chat"
     st.session_state.messages = []
@@ -130,23 +127,16 @@ def start_new_chat():
         },
     ).start_chat(history=[])
     st.session_state.context = {"courses": [], "professors": [], "grades": []}
-    
-    # Update the fun fact only when a new chat is created
     st.session_state.current_fact = get_random_umd_fact()
 
 # Function to load a saved chat
 def load_chat(chat_id):
     if chat_id in st.session_state.saved_chats:
-        # Save current chat
         save_current_chat()
-        
-        # Load the selected chat
         chat_data = st.session_state.saved_chats[chat_id]
         st.session_state.current_chat_id = chat_id
         st.session_state.current_chat_name = chat_data["name"]
         st.session_state.messages = chat_data["messages"].copy()
-        
-        # Re-initialize the chat model with the history
         chat_history = []
         for msg in st.session_state.messages:
             role = "user" if msg["role"] == "user" else "model"
@@ -169,19 +159,18 @@ if st.session_state.first_visit:
     st.markdown(f"*{greeting}!* Welcome to PlanetTerp Chatbot. Ask me anything about UMD courses and professors.")
     st.session_state.first_visit = False
 
-# Main chat area
+
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
 
-# Chat input
+
 if query := st.chat_input("Ask about UMD courses..."):
     with st.spinner("🐢 Thinking..."):
         st.session_state.messages.append({"role": "user", "content": query})
         with st.chat_message("user"):
             st.write(query)
         
-        # Ensure index is initialized
         ensure_index_initialized()
         
         # First try to directly extract course IDs from the query
@@ -194,11 +183,8 @@ if query := st.chat_input("Ask about UMD courses..."):
             st.session_state.course_ids, 
             model
         )
-        
-        # Combine results, prioritizing direct matches
+        # Combine results
         all_course_ids = direct_course_ids + semantic_course_ids
-        
-        # Process the data
         data = {"courses": [], "professors": [], "grades": []}
 
         # Get course details
