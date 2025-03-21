@@ -5,14 +5,12 @@ import datetime
 import json
 import random
 
-# Import all functions from planetterp_core
 from planetterp_core import (
     load_model, get_courses, get_course, get_professor, get_course_grades,
     extract_course_ids, initialize_index, search, generate_response,
     generate_chat_name, get_greeting
 )
 
-# Define the get_random_umd_fact function here, at the top level
 def get_random_umd_fact():
     umd_facts = [
         "UMD's mascot Testudo is a diamondback terrapin, Maryland's state reptile.",
@@ -31,7 +29,6 @@ def get_random_umd_fact():
     ]
     return random.choice(umd_facts)
 
-# Basic setup
 st.set_page_config(page_title="PlanetTerp Chatbot", page_icon="🐢")
 
 # Initialize the model and state
@@ -39,7 +36,7 @@ st.set_page_config(page_title="PlanetTerp Chatbot", page_icon="🐢")
 def get_model():
     try:
         import os
-        os.environ['TOKENIZERS_PARALLELISM'] = 'false'  # Disable parallelism warnings
+        os.environ['TOKENIZERS_PARALLELISM'] = 'false'
         return load_model()
     except Exception as e:
         st.error(f"Error loading model: {str(e)}")
@@ -96,26 +93,18 @@ def cached_get_course_grades(course_id):
 def ensure_index_initialized():
     if st.session_state.index is None:
         courses = cached_get_courses()
-        
-        # If courses is empty, display an error
         if not courses:
             st.sidebar.error("No courses retrieved. Please check the API.")
             return
-            
-        # Initialize the index
         st.session_state.index, st.session_state.course_ids = initialize_index(model, courses)
 
 # Function to save the current chat
 def save_current_chat():
-    # Only save if there are messages
     if st.session_state.messages:
-        # Generate a chat name if this is the first message
         if st.session_state.current_chat_name == "New Chat" and st.session_state.messages:
             first_user_message = next((msg["content"] for msg in st.session_state.messages if msg["role"] == "user"), None)
             if first_user_message:
                 st.session_state.current_chat_name = generate_chat_name(first_user_message)
-        
-        # Save the chat with its current ID and name
         st.session_state.saved_chats[st.session_state.current_chat_id] = {
             "name": st.session_state.current_chat_name,
             "messages": st.session_state.messages.copy(),

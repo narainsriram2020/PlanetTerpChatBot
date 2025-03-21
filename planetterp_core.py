@@ -12,15 +12,11 @@ from dotenv import load_dotenv
 
 import asyncio
 
-# Basic setup
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 genai.configure(api_key=GEMINI_API_KEY)
 PLANETTERP_BASE_URL = "https://api.planetterp.com/v1"
 
-
-
-# Example workaround for async initialization
 def torch_initialization():
     try:
         loop = asyncio.get_event_loop()
@@ -29,7 +25,6 @@ def torch_initialization():
         asyncio.set_event_loop(loop)
     return loop
 
-# Core API functions
 def get_courses():
     response = requests.get(f"{PLANETTERP_BASE_URL}/courses")
     if response.status_code == 200:
@@ -61,11 +56,9 @@ def filter_recent_grades(grades, years=4):
     # Get current year
     current_year = datetime.datetime.now().year
     
-    # Filter grades from the last 'years' years
     recent_grades = [g for g in grades if g.get('semester') and 
                     int(g.get('semester', '000000')[:4]) >= (current_year - years)]
-    
-    # Sort by semester in descending order (most recent first)
+
     recent_grades.sort(key=lambda x: x.get('semester', '000000'), reverse=True)
     
     return recent_grades
@@ -76,11 +69,10 @@ def get_course_grades(course_id):
         data = response.json()
         if isinstance(data, dict) and "error" in data:
             return []
-        # Filter and sort grades by recency
         return filter_recent_grades(data)
     return []
 
-# Extract course IDs from query
+
 def extract_course_ids(query):
     # Look for standard course patterns like CMSC330, MATH140, etc.
     pattern = r'\b[A-Z]{4}\d{3}[A-Z]?\b'
@@ -247,12 +239,10 @@ def generate_response(query, data, chat_model):
 
 
 def generate_chat_name(query):
-    # If there are course IDs in the query, use them in the name
     course_ids = extract_course_ids(query)
     if course_ids:
         return f"{', '.join(course_ids)} Question"
     
-    # Otherwise, use the first few words of the query
     words = query.split()
     if len(words) <= 4:
         return query
