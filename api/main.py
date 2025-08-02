@@ -3,10 +3,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Any
 
-from planetterp_core import (
-    get_courses, get_course, get_professor, get_course_grades, extract_course_ids,
-    load_model, initialize_index, search, generate_response
-)
+print("==> Starting FastAPI app...")
+
+try:
+    from planetterp_core import (
+        get_courses, get_course, get_professor, get_course_grades, extract_course_ids,
+        load_model, initialize_index, search, generate_response
+    )
+except Exception as e:
+    print("==> ERROR importing planetterp_core:", e)
+    raise
+
 
 app = FastAPI()
 
