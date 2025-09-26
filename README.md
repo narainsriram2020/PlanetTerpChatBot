@@ -4,7 +4,7 @@
 
 👉 [**Launch PlanetTerpChatBot**](https://planetterp-chat-bot.streamlit.app/)
 
-PlanetTerpChatBot is a Streamlit-based chatbot built to enhance how University of Maryland (UMD) students interact with academic resources available on PlanetTerp. Instead of using traditional search tools, users can engage in a conversational interface to explore course reviews, professor ratings, grade distributions, and more.
+PlanetTerpChatBot is a chatbot built to enhance how University of Maryland (UMD) students interact with academic resources available on PlanetTerp. Instead of using traditional search tools, users can engage in a conversational interface to explore course reviews, professor ratings, grade distributions, and more.
 
 ---
 
